@@ -4,278 +4,357 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A Special Wordle for You</title>
+    <title>Our Year 1 Wrapped</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap');
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #fff5f7;
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Inter', sans-serif;
         }
 
-        .tile {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #ffccd5;
+        .story-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            opacity: 0;
+            visibility: hidden;
+            text-align: center;
+        }
+
+        .active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .progress-container {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 50;
+        }
+
+        .progress-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            flex: 1;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+        }
+
+        .gradient-1 {
+            background: linear-gradient(135deg, #1e0533 0%, #440022 100%);
+        }
+
+        .gradient-2 {
+            background: linear-gradient(135deg, #001a33 0%, #003322 100%);
+        }
+
+        .gradient-3 {
+            background: linear-gradient(135deg, #331a00 0%, #440000 100%);
+        }
+
+        .gradient-final {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        }
+
+        .tap-area {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 40;
+            pointer-events: none;
+        }
+
+        .tap-area.active {
+            pointer-events: auto;
+        }
+
+        button {
+            position: relative;
+            z-index: 50;
+            pointer-events: auto;
+        }
+
+        .tap-right {
+            right: 0;
+        }
+
+        .tap-left {
+            left: 0;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 1.5rem;
+        }
+
+        .photo-item {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
 
-        .tile.correct {
-            background-color: #ff4d6d;
-            border-color: #ff4d6d;
-            color: white;
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .tile.present {
-            background-color: #ffb3c1;
-            border-color: #ffb3c1;
-            color: white;
-        }
-
-        .tile.absent {
-            background-color: #d8d8d8;
-            border-color: #d8d8d8;
-            color: white;
-        }
-
-        .key-correct {
-            background-color: #ff4d6d !important;
-            border-color: #ff4d6d !important;
-            color: white !important;
-        }
-
-        .key-present {
-            background-color: #ffb3c1 !important;
-            border-color: #ffb3c1 !important;
-            color: white !important;
-        }
-
-        .key-absent {
-            background-color: #d8d8d8 !important;
-            border-color: #d8d8d8 !important;
-            color: white !important;
-        }
-
-        .flip {
-            transform: rotateX(180deg);
-        }
-
-        .shake {
-            animation: shake 0.5s;
-        }
-
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            20% {
-                transform: translateX(-5px);
-            }
-
-            40% {
-                transform: translateX(5px);
-            }
-
-            60% {
-                transform: translateX(-5px);
-            }
-
-            80% {
-                transform: translateX(5px);
-            }
+        .photo-item-large {
+            grid-column: span 2;
+            aspect-ratio: 2 / 1;
         }
     </style>
 </head>
 
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body>
 
-    <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-pink-600 mb-2">Wordle: Ashu Edition</h1>
-        <p class="text-pink-400">Guess the 6-letter secret phrase ❤️</p>
-    </div>
+    <div class="story-container">
+        <div class="progress-container" id="progress-container"></div>
 
-    <div id="grid" class="grid grid-rows-6 gap-2 mb-8"></div>
-    <div id="keyboard" class="w-full max-w-md grid grid-cols-10 gap-1 px-2"></div>
+        <div class="tap-area tap-left active" onclick="prevSlide()"></div>
+        <div class="tap-area tap-right active" onclick="nextSlide()"></div>
 
-    <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
-            <img src="https://media1.tenor.com/m/FYrmLKoB1UIAAAAC/peach-and-goma-peach-loves-goma.gif"
-                class="w-full rounded-lg mb-4">
-            <h2 class="text-2xl font-bold text-pink-600 mb-4">You got it!</h2>
-            <p class="text-gray-600 mb-6 text-lg">My dearest Ashu, will you be my Valentine?</p>
-            <button onclick="celebrateMore()"
-                class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full transition-transform hover:scale-105">
-                YES! ❤️
-            </button>
+        <div class="slide active gradient-1" id="slide-0">
+            <h2 class="text-pink-300 text-sm font-bold tracking-widest uppercase mb-4">Year 1 Recap</h2>
+            <h1 class="text-white text-4xl font-black leading-tight">It's been an <br><span
+                    class="text-pink-500">incredible</span> first year with you, my dearest Ashu.</h1>
+        </div>
+
+        <div class="slide gradient-1" id="slide-1">
+            <h1 class="text-white text-3xl font-bold mb-8">We've seen each other for 34 days, or:</h1>
+            <div class="flex flex-col gap-6 text-white text-2xl font-semibold">
+                <div>
+                    <span class="text-5xl font-black text-pink-400" id="hours">816</span>
+                    <span class="text-xl ml-2">hours</span>
+                </div>
+                <div>
+                    <span class="text-5xl font-black text-pink-400" id="minutes">48,960</span>
+                    <span class="text-xl ml-2">minutes</span>
+                </div>
+                <div>
+                    <span class="text-5xl font-black text-pink-400" id="seconds">2,937,600</span>
+                    <span class="text-xl ml-2">seconds</span>
+                </div>
+            </div>
+            <br />
+            <p class="text-white text-sm mt-4">But we've probably spent 10 times that on facetime together 😅</p>
+        </div>
+
+        <div class="slide gradient-2" id="slide-2">
+            <h1 class="text-white text-3xl font-bold mb-6">Over those 34 days, we covered some serious miles in 4
+                cities...</h1>
+            <div class="grid grid-cols-2 gap-4 text-white">
+                <div class="bg-white/10 p-4 rounded-xl">📍 Atlanta</div>
+                <div class="bg-white/10 p-4 rounded-xl">📍 Chicago</div>
+                <div class="bg-white/10 p-4 rounded-xl">📍 Jacksonville</div>
+                <div class="bg-white/10 p-4 rounded-xl">📍 St. Augustine</div>
+            </div>
+        </div>
+
+        <div class="slide gradient-2" id="slide-3">
+            <h2 class="text-white/80 text-sm font-semibold mb-2">📍 Atlanta</h2>
+            <h1 class="text-white text-3xl font-bold mb-4">16 days in Atlanta</h1>
+            <div class="photo-grid">
+                <div class="photo-item">
+                    <img src="valentines-pics/atl1.jpg" alt="Atlanta memory 1">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/atl3.jpg" alt="Atlanta memory 2">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/atl4.jpg" alt="Atlanta memory 3">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/atl5.jpg" alt="Atlanta memory 4">
+                </div>
+            </div>
+        </div>
+
+        <div class="slide gradient-2" id="slide-4">
+            <h2 class="text-white/80 text-sm font-semibold mb-2">📍 Chicago</h2>
+            <h1 class="text-white text-3xl font-bold mb-4">5 days in Chicago</h1>
+            <div class="photo-grid">
+                <div class="photo-item">
+                    <img src="valentines-pics/chi2.jpg" alt="Chicago memory 1">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/chi1.jpg" alt="Chicago memory 2">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/chi5.jpg" alt="Chicago memory 3">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/chi6.jpg" alt="Chicago memory 4">
+                </div>
+            </div>
+        </div>
+
+        <div class="slide gradient-2" id="slide-5">
+            <h2 class="text-white/80 text-sm font-semibold mb-2">📍 Jacksonville</h2>
+            <h1 class="text-white text-3xl font-bold mb-4">13 days in Jacksonville</h1>
+            <div class="photo-grid">
+                <div class="photo-item">
+                    <img src="valentines-pics/jax1.jpg" alt="Jacksonville memory 1">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/jax2.jpeg" alt="Jacksonville memory 2">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/jax3.jpg" alt="Jacksonville memory 3">
+                </div>
+                <div class="photo-item">
+                    <img src="valentines-pics/jax6.jpg" alt="Jacksonville memory 4">
+                </div>
+            </div>
+        </div>
+
+        <div class="slide gradient-3" id="slide-7">
+            <img src="valentines-pics/booth.png" alt="MBA application" class="w-full h-full object-cover">
+            <h1 class="text-white text-3xl font-bold">Through the all the work struggles and the MBA application
+                cycles...</h1>
+            <p class="text-orange-200 mt-4 text-lg">You were my rock.</p>
+            <p class="text-orange-200 mt-4 text-lg">Thank you for being there for me.</p>
+            <p class="text-orange-200 mt-4 text-lg">I'm so grateful to have you in my life.</p>
+            <p class="text-orange-200 mt-4 text-lg">I love you more than words can describe.</p>
+        </div>
+
+        <div class="slide gradient-final" id="slide-8">
+            <h2 class="text-white/80 text-xl mb-2">One last thing for the 2026 forecast...</h2>
+            <h1 class="text-white text-5xl font-black mb-10">Will you be my Valentine?</h1>
+
+            <div class="flex flex-col gap-4 w-full px-10">
+                <button onclick="celebrate()"
+                    class="bg-white text-purple-600 font-bold py-4 rounded-full shadow-lg transform transition active:scale-95">
+                    YES, ABSOLUTELY! ❤️
+                </button>
+                <button id="no-btn" onmouseover="moveNo()" class="text-white/50 text-sm italic">
+                    I'll think about it...
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        const WORD = "BEMINE";
-        const MAX_GUESSES = 6;
-        let currentGuess = "";
-        let guesses = [];
-        let gameOver = false;
-        let keyStates = {}; // Track state of each keyboard key: 'correct', 'present', or 'absent'
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progressContainer = document.getElementById('progress-container');
 
-        // Initialize Grid
-        const gridElement = document.getElementById('grid');
-        for (let i = 0; i < MAX_GUESSES * 6; i++) {
-            const tile = document.createElement('div');
-            tile.className = 'tile rounded-md';
-            tile.id = `tile-${i}`;
-            gridElement.appendChild(tile);
-            if (i % 6 === 0 && i !== 0) gridElement.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
-        }
-        gridElement.className += " grid-cols-6";
-
-        // Initialize Keyboard
-        const keys = "QWERTYUIOPASDFGHJKLZXCVBNM".split("");
-        const keyboard = document.getElementById('keyboard');
-        keys.forEach(key => {
-            const btn = document.createElement('button');
-            btn.textContent = key;
-            btn.className = 'bg-white border-2 border-pink-100 p-2 rounded font-bold text-pink-600 hover:bg-pink-50 transition-colors';
-            btn.onclick = () => handleInput(key);
-            btn.id = `key-${key}`;
-            keyboard.appendChild(btn);
+        // Create progress bars
+        slides.forEach((_, i) => {
+            const bar = document.createElement('div');
+            bar.className = 'progress-bar';
+            bar.innerHTML = `<div class="progress-fill" id="fill-${i}"></div>`;
+            progressContainer.appendChild(bar);
         });
 
-        const delBtn = document.createElement('button');
-        delBtn.textContent = "DEL";
-        delBtn.className = 'col-span-2 bg-pink-100 text-pink-700 p-2 rounded font-bold';
-        delBtn.onclick = () => handleInput("BACKSPACE");
-        keyboard.appendChild(delBtn);
-
-        const enterBtn = document.createElement('button');
-        enterBtn.textContent = "ENTER";
-        enterBtn.className = 'col-span-2 bg-pink-500 text-white p-2 rounded font-bold';
-        enterBtn.onclick = () => handleInput("ENTER");
-        keyboard.appendChild(enterBtn);
-
-        function handleInput(key) {
-            if (gameOver) return;
-            if (key === "ENTER" || key === "Enter") {
-                submitGuess();
-            } else if (key === "BACKSPACE" || key === "Backspace") {
-                currentGuess = currentGuess.slice(0, -1);
-                updateGrid();
-            } else if (currentGuess.length < 6 && /^[a-zA-Z]$/.test(key)) {
-                currentGuess += key.toUpperCase();
-                updateGrid();
-            }
-        }
-
-        window.addEventListener('keydown', (e) => {
-            // Prevent default form submission behavior if Enter is pressed
-            if (e.key === "Enter") {
-                e.preventDefault();
-            }
-            handleInput(e.key);
-        });
-
-        function updateGrid() {
-            const rowOffset = guesses.length * 6;
-            for (let i = 0; i < 6; i++) {
-                const tile = document.getElementById(`tile-${rowOffset + i}`);
-                tile.textContent = currentGuess[i] || "";
-                tile.style.borderColor = currentGuess[i] ? "#ff4d6d" : "#ffccd5";
-            }
-        }
-
-        function updateKeyboardKey(char, state) {
-            // Priority: correct > present > absent
-            if (!keyStates[char] ||
-                (keyStates[char] === 'absent' && state !== 'absent') ||
-                (keyStates[char] === 'present' && state === 'correct')) {
-                keyStates[char] = state;
-                const keyBtn = document.getElementById(`key-${char}`);
-                if (keyBtn) {
-                    // Remove existing state classes
-                    keyBtn.classList.remove('key-correct', 'key-present', 'key-absent');
-                    // Add new state class
-                    keyBtn.classList.add(`key-${state}`);
-                }
-            }
-        }
-
-        function submitGuess() {
-            if (currentGuess.length !== 6) return;
-
-            const rowOffset = guesses.length * 6;
-            const guessArray = currentGuess.split("");
-
-            guessArray.forEach((char, i) => {
-                const tile = document.getElementById(`tile-${rowOffset + i}`);
-                setTimeout(() => {
-                    if (char === WORD[i]) {
-                        tile.classList.add('correct');
-                        updateKeyboardKey(char, 'correct');
-                    } else if (WORD.includes(char)) {
-                        tile.classList.add('present');
-                        updateKeyboardKey(char, 'present');
-                    } else {
-                        tile.classList.add('absent');
-                        updateKeyboardKey(char, 'absent');
-                    }
-                }, i * 100);
+        function showSlide(index) {
+            slides.forEach((s, i) => {
+                s.classList.toggle('active', i === index);
+                gsap.to(`#fill-${i}`, { width: i < index ? '100%' : '0%', duration: 0.3 });
             });
 
-            if (currentGuess === WORD) {
-                gameOver = true;
-                setTimeout(winGame, 1000);
+            // Disable tap areas on the last slide (valentine slide) so buttons work
+            const tapAreas = document.querySelectorAll('.tap-area');
+            if (index === slides.length - 1) {
+                tapAreas.forEach(area => area.classList.remove('active'));
             } else {
-                guesses.push(currentGuess);
-                currentGuess = "";
+                tapAreas.forEach(area => area.classList.add('active'));
+            }
+
+            // Animate text in the new slide
+            gsap.fromTo(`#slide-${index} h1`,
+                { y: 50, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.8, ease: "power4.out" }
+            );
+
+            // Animate images in location slides
+            if (index >= 3 && index <= 6) {
+                gsap.fromTo(`#slide-${index} .photo-item`,
+                    { scale: 0.8, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)", stagger: 0.1, delay: 0.3 }
+                );
+            }
+
+            // Animate stats numbers
+            if (index === 1) {
+                gsap.fromTo('#hours, #minutes, #seconds',
+                    { scale: 0, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: 0.8, ease: "back.out(1.7)", stagger: 0.2, delay: 0.3 }
+                );
             }
         }
 
-        function winGame() {
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                showSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                showSlide(currentSlide);
+            }
+        }
+
+        function moveNo() {
+            const btn = document.getElementById('no-btn');
+            const x = Math.random() * 100 - 50;
+            const y = Math.random() * 100 - 50;
+            gsap.to(btn, { x: x, y: y, duration: 0.2 });
+        }
+
+        function celebrate() {
+            console.log('celebrate');
             confetti({
-                particleCount: 150,
+                particleCount: 200,
                 spread: 70,
                 origin: { y: 0.6 },
-                colors: ['#ff4d6d', '#ff758f', '#ffb3c1']
+                colors: ['#ffffff', '#ff0080', '#7928ca']
             });
-            document.getElementById('modal').style.display = 'flex';
         }
 
-        function celebrateMore() {
-            const end = Date.now() + (3 * 1000);
-            const colors = ['#ff4d6d', '#ffffff'];
-
-            (function frame() {
-                confetti({
-                    particleCount: 2,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: colors
-                });
-                confetti({
-                    particleCount: 2,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: colors
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            }());
-        }
+        // Auto-animate first slide
+        showSlide(0);
     </script>
 </body>
 

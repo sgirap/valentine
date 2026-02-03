@@ -101,8 +101,8 @@
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-pink-600 mb-2">Wordle: Love Edition</h1>
-        <p class="text-pink-400">Guess the 6-letter secret word ❤️</p>
+        <h1 class="text-3xl font-bold text-pink-600 mb-2">Wordle: Ashu Edition</h1>
+        <p class="text-pink-400">Guess the 6-letter secret phrase ❤️</p>
     </div>
 
     <div id="grid" class="grid grid-rows-6 gap-2 mb-8"></div>
@@ -113,7 +113,7 @@
             <img src="https://media1.tenor.com/m/FYrmLKoB1UIAAAAC/peach-and-goma-peach-loves-goma.gif"
                 class="w-full rounded-lg mb-4">
             <h2 class="text-2xl font-bold text-pink-600 mb-4">You got it!</h2>
-            <p class="text-gray-600 mb-6 text-lg">Will you be my Valentine?</p>
+            <p class="text-gray-600 mb-6 text-lg">My dearest Ashu, will you be my Valentine?</p>
             <button onclick="celebrateMore()"
                 class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full transition-transform hover:scale-105">
                 YES! ❤️
@@ -128,12 +128,6 @@
         let guesses = [];
         let gameOver = false;
         let keyStates = {}; // Track state of each keyboard key: 'correct', 'present', or 'absent'
-
-        const memes = [
-            "https://media.giphy.com/media/OPU6wUKARA8AU/giphy.gif", // Sad hamster
-            "https://media.giphy.com/media/qUIm5wu6LAAog/giphy.gif", // Puss in boots
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnh6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/11sBLVxNs7v6WA/giphy.gif"
-        ];
 
         // Initialize Grid
         const gridElement = document.getElementById('grid');
@@ -243,14 +237,7 @@
                 setTimeout(winGame, 1000);
             } else {
                 guesses.push(currentGuess);
-                const memeIdx = Math.min(guesses.length - 1, memes.length - 1);
-                document.getElementById('hint-meme').src = memes[memeIdx];
-                document.getElementById('hint-meme').classList.remove('hidden');
-                document.getElementById('game-message').textContent = "Not quite! Try again, beautiful.";
                 currentGuess = "";
-                if (guesses.length === MAX_GUESSES) {
-                    document.getElementById('game-message').textContent = "Hint: It rhymes with 'Be Mine'...";
-                }
             }
         }
 

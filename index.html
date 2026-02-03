@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Special Wordle for You</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #fff5f7;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ffccd5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .tile.correct {
+            background-color: #ff4d6d;
+            border-color: #ff4d6d;
+            color: white;
+        }
+
+        .tile.present {
+            background-color: #ffb3c1;
+            border-color: #ffb3c1;
+            color: white;
+        }
+
+        .tile.absent {
+            background-color: #d8d8d8;
+            border-color: #d8d8d8;
+            color: white;
+        }
+
+        .key-correct {
+            background-color: #ff4d6d !important;
+            border-color: #ff4d6d !important;
+            color: white !important;
+        }
+
+        .key-present {
+            background-color: #ffb3c1 !important;
+            border-color: #ffb3c1 !important;
+            color: white !important;
+        }
+
+        .key-absent {
+            background-color: #d8d8d8 !important;
+            border-color: #d8d8d8 !important;
+            color: white !important;
+        }
+
+        .flip {
+            transform: rotateX(180deg);
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-5px);
+            }
+
+            40% {
+                transform: translateX(5px);
+            }
+
+            60% {
+                transform: translateX(-5px);
+            }
+
+            80% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-pink-600 mb-2">Wordle: Love Edition</h1>
+        <p class="text-pink-400">Guess the 6-letter secret word ❤️</p>
+    </div>
+
+    <div id="grid" class="grid grid-rows-6 gap-2 mb-8"></div>
+    <div id="keyboard" class="w-full max-w-md grid grid-cols-10 gap-1 px-2"></div>
+
+    <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <img src="https://media1.tenor.com/m/FYrmLKoB1UIAAAAC/peach-and-goma-peach-loves-goma.gif"
+                class="w-full rounded-lg mb-4">
+            <h2 class="text-2xl font-bold text-pink-600 mb-4">You got it!</h2>
+            <p class="text-gray-600 mb-6 text-lg">Will you be my Valentine?</p>
+            <button onclick="celebrateMore()"
+                class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full transition-transform hover:scale-105">
+                YES! ❤️
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const WORD = "BEMINE";
+        const MAX_GUESSES = 6;
+        let currentGuess = "";
+        let guesses = [];
+        let gameOver = false;
+        let keyStates = {}; // Track state of each keyboard key: 'correct', 'present', or 'absent'
+
+        const memes = [
+            "https://media.giphy.com/media/OPU6wUKARA8AU/giphy.gif", // Sad hamster
+            "https://media.giphy.com/media/qUIm5wu6LAAog/giphy.gif", // Puss in boots
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnh6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6Znd6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/11sBLVxNs7v6WA/giphy.gif"
+        ];
+
+        // Initialize Grid
+        const gridElement = document.getElementById('grid');
+        for (let i = 0; i < MAX_GUESSES * 6; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile rounded-md';
+            tile.id = `tile-${i}`;
+            gridElement.appendChild(tile);
+            if (i % 6 === 0 && i !== 0) gridElement.style.gridTemplateColumns = 'repeat(6, minmax(0, 1fr))';
+        }
+        gridElement.className += " grid-cols-6";
+
+        // Initialize Keyboard
+        const keys = "QWERTYUIOPASDFGHJKLZXCVBNM".split("");
+        const keyboard = document.getElementById('keyboard');
+        keys.forEach(key => {
+            const btn = document.createElement('button');
+            btn.textContent = key;
+            btn.className = 'bg-white border-2 border-pink-100 p-2 rounded font-bold text-pink-600 hover:bg-pink-50 transition-colors';
+            btn.onclick = () => handleInput(key);
+            btn.id = `key-${key}`;
+            keyboard.appendChild(btn);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = "DEL";
+        delBtn.className = 'col-span-2 bg-pink-100 text-pink-700 p-2 rounded font-bold';
+        delBtn.onclick = () => handleInput("BACKSPACE");
+        keyboard.appendChild(delBtn);
+
+        const enterBtn = document.createElement('button');
+        enterBtn.textContent = "ENTER";
+        enterBtn.className = 'col-span-2 bg-pink-500 text-white p-2 rounded font-bold';
+        enterBtn.onclick = () => handleInput("ENTER");
+        keyboard.appendChild(enterBtn);
+
+        function handleInput(key) {
+            if (gameOver) return;
+            if (key === "ENTER" || key === "Enter") {
+                submitGuess();
+            } else if (key === "BACKSPACE" || key === "Backspace") {
+                currentGuess = currentGuess.slice(0, -1);
+                updateGrid();
+            } else if (currentGuess.length < 6 && /^[a-zA-Z]$/.test(key)) {
+                currentGuess += key.toUpperCase();
+                updateGrid();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            // Prevent default form submission behavior if Enter is pressed
+            if (e.key === "Enter") {
+                e.preventDefault();
+            }
+            handleInput(e.key);
+        });
+
+        function updateGrid() {
+            const rowOffset = guesses.length * 6;
+            for (let i = 0; i < 6; i++) {
+                const tile = document.getElementById(`tile-${rowOffset + i}`);
+                tile.textContent = currentGuess[i] || "";
+                tile.style.borderColor = currentGuess[i] ? "#ff4d6d" : "#ffccd5";
+            }
+        }
+
+        function updateKeyboardKey(char, state) {
+            // Priority: correct > present > absent
+            if (!keyStates[char] ||
+                (keyStates[char] === 'absent' && state !== 'absent') ||
+                (keyStates[char] === 'present' && state === 'correct')) {
+                keyStates[char] = state;
+                const keyBtn = document.getElementById(`key-${char}`);
+                if (keyBtn) {
+                    // Remove existing state classes
+                    keyBtn.classList.remove('key-correct', 'key-present', 'key-absent');
+                    // Add new state class
+                    keyBtn.classList.add(`key-${state}`);
+                }
+            }
+        }
+
+        function submitGuess() {
+            if (currentGuess.length !== 6) return;
+
+            const rowOffset = guesses.length * 6;
+            const guessArray = currentGuess.split("");
+
+            guessArray.forEach((char, i) => {
+                const tile = document.getElementById(`tile-${rowOffset + i}`);
+                setTimeout(() => {
+                    if (char === WORD[i]) {
+                        tile.classList.add('correct');
+                        updateKeyboardKey(char, 'correct');
+                    } else if (WORD.includes(char)) {
+                        tile.classList.add('present');
+                        updateKeyboardKey(char, 'present');
+                    } else {
+                        tile.classList.add('absent');
+                        updateKeyboardKey(char, 'absent');
+                    }
+                }, i * 100);
+            });
+
+            if (currentGuess === WORD) {
+                gameOver = true;
+                setTimeout(winGame, 1000);
+            } else {
+                guesses.push(currentGuess);
+                const memeIdx = Math.min(guesses.length - 1, memes.length - 1);
+                document.getElementById('hint-meme').src = memes[memeIdx];
+                document.getElementById('hint-meme').classList.remove('hidden');
+                document.getElementById('game-message').textContent = "Not quite! Try again, beautiful.";
+                currentGuess = "";
+                if (guesses.length === MAX_GUESSES) {
+                    document.getElementById('game-message').textContent = "Hint: It rhymes with 'Be Mine'...";
+                }
+            }
+        }
+
+        function winGame() {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#ff4d6d', '#ff758f', '#ffb3c1']
+            });
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function celebrateMore() {
+            const end = Date.now() + (3 * 1000);
+            const colors = ['#ff4d6d', '#ffffff'];
+
+            (function frame() {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: colors
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: colors
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+
+</html>
